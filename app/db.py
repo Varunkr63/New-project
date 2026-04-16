@@ -15,8 +15,20 @@ def init_db() -> None:
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS journal_entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
                 entry_date TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 title TEXT NOT NULL,
@@ -30,14 +42,27 @@ def init_db() -> None:
                 voice_energy REAL NOT NULL,
                 voice_duration REAL NOT NULL,
                 insight_summary TEXT NOT NULL,
-                audio_path TEXT NOT NULL
+                audio_path TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
             )
             """
         )
+        columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(journal_entries)").fetchall()
+        }
+        if "user_id" not in columns:
+            conn.execute("ALTER TABLE journal_entries ADD COLUMN user_id INTEGER")
         conn.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_journal_entries_date
             ON journal_entries(entry_date)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_journal_entries_user
+            ON journal_entries(user_id, created_at)
             """
         )
         conn.execute(

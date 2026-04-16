@@ -4,12 +4,13 @@ A multilingual voice journal built with FastAPI, SQLite, and Whisper.
 
 ## Features
 
+- User signup and login with session-based access
 - Record your voice directly in the browser
 - Convert speech to text with Whisper
-- Store a daily journal with transcript, mood, and tags
+- Store a private daily journal with transcript, mood, and tags
 - Search past entries by text, language, mood, or date
 - Analyze mood from both transcript content and voice energy
-- View a daily insight dashboard
+- View a personal daily insight dashboard
 - Export any journal entry to PDF
 
 ## Quick Start
@@ -34,6 +35,8 @@ uvicorn main:app --reload
 ```
 
 4. Open `http://127.0.0.1:8000`
+
+5. Create an account, log in, and start recording entries.
 
 ## Notes
 

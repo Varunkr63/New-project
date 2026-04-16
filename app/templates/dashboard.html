@@ -57,4 +57,22 @@
     {% endif %}
   </div>
 </section>
+<section class="panel">
+  <h2>Quick PDF export</h2>
+  {% if recent_for_export %}
+    <div class="entry-list">
+      {% for entry in recent_for_export %}
+        <div class="entry-card split-card">
+          <div>
+            <strong>{{ entry.title }}</strong>
+            <span>{{ entry.entry_date }}</span>
+          </div>
+          <a class="secondary-btn inline-btn" href="/entries/{{ entry.id }}/export">Download PDF</a>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">Your exported entries will appear here after you record a journal.</p>
+  {% endif %}
+</section>
 {% endblock %}

@@ -8,57 +8,81 @@
 
 <section class="grid two-up">
   <div class="panel">
-    <h2>Create today's entry</h2>
-    <form id="journal-form" action="/entries" method="post" enctype="multipart/form-data">
-      <input type="hidden" name="voice_energy" id="voice_energy" value="0" />
-      <input type="hidden" name="voice_duration" id="voice_duration" value="0" />
-      <input type="hidden" name="ui_lang" value="{{ ui_lang }}" />
+    {% if current_user %}
+      <h2>Create today's entry</h2>
+      <form id="journal-form" action="/entries" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="voice_energy" id="voice_energy" value="0" />
+        <input type="hidden" name="voice_duration" id="voice_duration" value="0" />
+        <input type="hidden" name="ui_lang" value="{{ ui_lang }}" />
 
-      <label for="ui_lang_picker">App language</label>
-      <select id="ui_lang_picker" onchange="window.location='/?ui_lang=' + this.value">
-        <option value="en" {% if ui_lang == 'en' %}selected{% endif %}>English UI</option>
-        <option value="hi" {% if ui_lang == 'hi' %}selected{% endif %}>Hindi UI</option>
-        <option value="es" {% if ui_lang == 'es' %}selected{% endif %}>Spanish UI</option>
-      </select>
+        <label for="ui_lang_picker">App language</label>
+        <select id="ui_lang_picker" onchange="window.location='/?ui_lang=' + this.value">
+          <option value="en" {% if ui_lang == 'en' %}selected{% endif %}>English UI</option>
+          <option value="hi" {% if ui_lang == 'hi' %}selected{% endif %}>Hindi UI</option>
+          <option value="es" {% if ui_lang == 'es' %}selected{% endif %}>Spanish UI</option>
+        </select>
 
-      <label for="title">Title</label>
-      <input id="title" name="title" placeholder="Morning reset, commute thoughts, gratitude..." required />
+        <label for="title">Title</label>
+        <input id="title" name="title" placeholder="Morning reset, commute thoughts, gratitude..." required />
 
-      <label for="journal_language">Spoken language</label>
-      <select id="journal_language" name="journal_language">
-        {% for code, label in language_options %}
-          <option value="{{ code }}">{{ label }}</option>
-        {% endfor %}
-      </select>
+        <label for="journal_language">Spoken language</label>
+        <select id="journal_language" name="journal_language">
+          {% for code, label in language_options %}
+            <option value="{{ code }}">{{ label }}</option>
+          {% endfor %}
+        </select>
 
-      <label for="user_notes">Optional notes</label>
-      <textarea id="user_notes" name="user_notes" rows="4" placeholder="Add context, tags, or follow-up thoughts."></textarea>
+        <label for="user_notes">Optional notes</label>
+        <textarea id="user_notes" name="user_notes" rows="4" placeholder="Add context, tags, or follow-up thoughts."></textarea>
 
-      <div class="recorder">
-        <button type="button" id="record-btn" class="record-btn">Start recording</button>
-        <span id="recording-status">No recording yet</span>
+        <div class="recorder">
+          <button type="button" id="record-btn" class="record-btn">Start recording</button>
+          <span id="recording-status">No recording yet</span>
+        </div>
+
+        <audio id="preview-audio" controls class="hidden"></audio>
+        <input type="file" id="audio" name="audio" accept=".wav,audio/wav" class="hidden" required />
+
+        <button type="submit" class="submit-btn">Save journal entry</button>
+      </form>
+    {% else %}
+      <h2>Secure voice journaling</h2>
+      <p>Sign up or log in to keep your journal entries private, searchable, and tied to your own dashboard.</p>
+      <div class="auth-cta">
+        <a class="submit-btn inline-btn" href="/auth?mode=signup&ui_lang={{ ui_lang }}">Create account</a>
+        <a class="secondary-btn inline-btn" href="/auth?mode=login&ui_lang={{ ui_lang }}">Login</a>
       </div>
-
-      <audio id="preview-audio" controls class="hidden"></audio>
-      <input type="file" id="audio" name="audio" accept="audio/*" class="hidden" required />
-
-      <button type="submit" class="submit-btn">Save journal entry</button>
-    </form>
+    {% endif %}
   </div>
 
   <div class="panel">
-    <h2>Recent entries</h2>
-    {% if recent_entries %}
+    <h2>{% if current_user %}Recent entries{% else %}What you can do{% endif %}</h2>
+    {% if current_user and recent_entries %}
       <div class="entry-list">
         {% for entry in recent_entries %}
           <a class="entry-card" href="/entries/{{ entry.id }}?ui_lang={{ ui_lang }}">
             <strong>{{ entry.title }}</strong>
-            <span>{{ entry.entry_date }} · {{ entry.mood_label }} · {{ entry.language }}</span>
+            <span>{{ entry.entry_date }} | {{ entry.mood_label }} | {{ entry.language }}</span>
           </a>
         {% endfor %}
       </div>
-    {% else %}
+    {% elif current_user %}
       <p class="empty-state">Your first recording will appear here.</p>
+    {% else %}
+      <div class="entry-list">
+        <div class="entry-card">
+          <strong>Record and transcribe</strong>
+          <span>Capture voice notes and turn them into searchable text with Whisper.</span>
+        </div>
+        <div class="entry-card">
+          <strong>Track mood over time</strong>
+          <span>Each entry blends transcript cues and voice energy into a daily mood trend.</span>
+        </div>
+        <div class="entry-card">
+          <strong>Review insights and export</strong>
+          <span>Browse your history, open the dashboard, and export entries to PDF.</span>
+        </div>
+      </div>
     {% endif %}
   </div>
 </section>

@@ -6,7 +6,7 @@
       <p class="eyebrow">{{ entry.entry_date }}</p>
       <h1>{{ entry.title }}</h1>
     </div>
-    <a class="secondary-btn" href="/entries/{{ entry.id }}/export">Export PDF</a>
+    <a class="secondary-btn inline-btn" href="/entries/{{ entry.id }}/export">Export PDF</a>
   </div>
 
   <div class="stats-row">
@@ -17,6 +17,10 @@
     <div class="stat-chip">
       <span>Score</span>
       <strong>{{ entry.mood_score }}</strong>
+    </div>
+    <div class="stat-chip">
+      <span>Text sentiment</span>
+      <strong>{{ entry.text_sentiment }}</strong>
     </div>
     <div class="stat-chip">
       <span>Language</span>
@@ -30,6 +34,9 @@
 
   <h2>Insight</h2>
   <p>{{ entry.insight_summary }}</p>
+
+  <h2>Export</h2>
+  <p><a class="submit-btn inline-btn" href="/entries/{{ entry.id }}/export">Download this entry as PDF</a></p>
 
   <h2>Transcript</h2>
   <div class="text-card">{{ entry.transcript }}</div>
