@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from app.analysis import analyze_mood
 from app.auth import hash_password, verify_password
 from app.db import AUDIO_DIR, get_connection
+from app.pdf_analysis import extract_text_from_pdf_bytes
 from app.pdf_export import build_entry_pdf
 from app.services.transcription import transcribe_audio
 
@@ -70,6 +71,66 @@ def get_entry_for_user(entry_id: int, user_id: int):
             "SELECT * FROM journal_entries WHERE id = ? AND user_id = ?",
             (entry_id, user_id),
         ).fetchone()
+
+
+def build_dashboard_payload(user_id: int) -> dict[str, object]:
+    with get_connection() as conn:
+        stats = conn.execute(
+            """
+            SELECT
+                COUNT(*) AS total_entries,
+                ROUND(AVG(mood_score), 3) AS average_mood,
+                ROUND(AVG(voice_duration), 1) AS average_duration
+            FROM journal_entries
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+        daily = conn.execute(
+            """
+            SELECT entry_date, COUNT(*) AS count, ROUND(AVG(mood_score), 3) AS avg_mood
+            FROM journal_entries
+            WHERE user_id = ?
+            GROUP BY entry_date
+            ORDER BY entry_date DESC
+            LIMIT 7
+            """,
+            (user_id,),
+        ).fetchall()
+        moods = conn.execute(
+            """
+            SELECT mood_label, COUNT(*) AS count
+            FROM journal_entries
+            WHERE user_id = ?
+            GROUP BY mood_label
+            ORDER BY count DESC
+            """,
+            (user_id,),
+        ).fetchall()
+        recent_for_export = conn.execute(
+            """
+            SELECT id, title, entry_date
+            FROM journal_entries
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 5
+            """,
+            (user_id,),
+        ).fetchall()
+
+    top_mood = moods[0]["mood_label"] if moods else "No data yet"
+    insight = (
+        f"Your most common mood trend is {top_mood}. Keep an eye on how your speaking length changes with mood."
+        if moods
+        else "Start by recording your first journal to unlock trend insights."
+    )
+    return {
+        "stats": stats,
+        "daily": daily,
+        "moods": moods,
+        "insight": insight,
+        "recent_for_export": recent_for_export,
+    }
 
 
 def claim_legacy_entries(user_id: int) -> None:
@@ -358,56 +419,51 @@ def dashboard(request: Request, ui_lang: str = "en"):
     if user is None:
         return RedirectResponse(url=f"/auth?mode=login&ui_lang={ui_lang}", status_code=303)
 
-    with get_connection() as conn:
-        stats = conn.execute(
-            """
-            SELECT
-                COUNT(*) AS total_entries,
-                ROUND(AVG(mood_score), 3) AS average_mood,
-                ROUND(AVG(voice_duration), 1) AS average_duration
-            FROM journal_entries
-            WHERE user_id = ?
-            """,
-            (user["id"],),
-        ).fetchone()
-        daily = conn.execute(
-            """
-            SELECT entry_date, COUNT(*) AS count, ROUND(AVG(mood_score), 3) AS avg_mood
-            FROM journal_entries
-            WHERE user_id = ?
-            GROUP BY entry_date
-            ORDER BY entry_date DESC
-            LIMIT 7
-            """,
-            (user["id"],),
-        ).fetchall()
-        moods = conn.execute(
-            """
-            SELECT mood_label, COUNT(*) AS count
-            FROM journal_entries
-            WHERE user_id = ?
-            GROUP BY mood_label
-            ORDER BY count DESC
-            """,
-            (user["id"],),
-        ).fetchall()
-        recent_for_export = conn.execute(
-            """
-            SELECT id, title, entry_date
-            FROM journal_entries
-            WHERE user_id = ?
-            ORDER BY created_at DESC
-            LIMIT 5
-            """,
-            (user["id"],),
-        ).fetchall()
-
-    top_mood = moods[0]["mood_label"] if moods else "No data yet"
-    insight = (
-        f"Your most common mood trend is {top_mood}. Keep an eye on how your speaking length changes with mood."
-        if moods
-        else "Start by recording your first journal to unlock trend insights."
+    return templates.TemplateResponse(
+        request,
+        "dashboard.html",
+        template_context(
+            request,
+            ui_lang,
+            pdf_result=None,
+            pdf_error="",
+            **build_dashboard_payload(user["id"]),
+        ),
     )
+
+
+@router.post("/dashboard/pdf-analysis", response_class=HTMLResponse)
+async def dashboard_pdf_analysis(
+    request: Request,
+    ui_lang: str = Form("en"),
+    pdf_file: UploadFile = File(...),
+):
+    user = get_current_user(request)
+    if user is None:
+        return RedirectResponse(url=f"/auth?mode=login&ui_lang={ui_lang}", status_code=303)
+
+    pdf_error = ""
+    pdf_result = None
+    if not (pdf_file.filename or "").lower().endswith(".pdf"):
+        pdf_error = "Please upload a PDF file."
+    else:
+        pdf_bytes = await pdf_file.read()
+        try:
+            extracted_text = extract_text_from_pdf_bytes(pdf_bytes)
+            if not extracted_text.strip():
+                pdf_error = "No readable text was found in that PDF."
+            else:
+                analysis = analyze_mood(extracted_text, 0.0, 0.0)
+                pdf_result = {
+                    "filename": pdf_file.filename,
+                    "pages_text_preview": extracted_text[:500],
+                    "mood_label": analysis["mood_label"],
+                    "mood_score": analysis["mood_score"],
+                    "text_sentiment": analysis["text_sentiment"],
+                    "insight_summary": analysis["insight_summary"],
+                }
+        except Exception as exc:
+            pdf_error = f"Could not analyze that PDF: {exc}"
 
     return templates.TemplateResponse(
         request,
@@ -415,11 +471,9 @@ def dashboard(request: Request, ui_lang: str = "en"):
         template_context(
             request,
             ui_lang,
-            stats=stats,
-            daily=daily,
-            moods=moods,
-            insight=insight,
-            recent_for_export=recent_for_export,
+            pdf_result=pdf_result,
+            pdf_error=pdf_error,
+            **build_dashboard_payload(user["id"]),
         ),
     )
 
@@ -436,3 +490,30 @@ def export_entry(request: Request, entry_id: int) -> Response:
     filename = f"voice-journal-{entry_id}.pdf"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
     return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
+
+
+@router.post("/entries/{entry_id}/delete")
+def delete_entry(request: Request, entry_id: int, ui_lang: str = Form("en")) -> RedirectResponse:
+    user = get_current_user(request)
+    if user is None:
+        return RedirectResponse(url=f"/auth?mode=login&ui_lang={ui_lang}", status_code=303)
+
+    entry = get_entry_for_user(entry_id, user["id"])
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found.")
+
+    audio_path = Path(entry["audio_path"])
+    with get_connection() as conn:
+        conn.execute(
+            "DELETE FROM journal_entries WHERE id = ? AND user_id = ?",
+            (entry_id, user["id"]),
+        )
+        conn.commit()
+
+    if audio_path.exists():
+        try:
+            audio_path.unlink()
+        except OSError:
+            pass
+
+    return RedirectResponse(url=f"/history?ui_lang={ui_lang}", status_code=303)
