@@ -313,8 +313,13 @@ async def create_entry(
     except Exception as exc:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"Transcription failed: {exc}") from exc
 
-    transcript = transcription["text"].strip() or user_notes.strip() or title.strip()
-    analysis = analyze_mood(transcript, voice_energy, voice_duration)
+    transcript = transcription["text"].strip()
+    analysis_input = transcript or user_notes.strip() or title.strip()
+    saved_detected_language = transcription["language"]
+    if journal_language == "hi" and transcript:
+        saved_detected_language = "hi"
+
+    analysis = analyze_mood(analysis_input, voice_energy, voice_duration)
     entry_date = datetime.now().date().isoformat()
     created_at = datetime.now().isoformat(timespec="seconds")
 
@@ -337,7 +342,7 @@ async def create_entry(
                 transcript,
                 user_notes,
                 journal_language,
-                transcription["language"],
+                saved_detected_language,
                 analysis["mood_label"],
                 analysis["mood_score"],
                 analysis["text_sentiment"],
