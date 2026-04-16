@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid auth-layout">
+  <div class="hero-card">
+    <p class="eyebrow">Private journaling</p>
+    <h1>Login or create your account</h1>
+    <p class="hero-sub">Each user gets private journal entries, personal mood trends, searchable history, and PDF export.</p>
+  </div>
+
+  <div class="panel">
+    <div class="auth-switch">
+      <a class="{% if mode == 'login' %}active-tab{% endif %}" href="/auth?mode=login&ui_lang={{ ui_lang }}">Login</a>
+      <a class="{% if mode == 'signup' %}active-tab{% endif %}" href="/auth?mode=signup&ui_lang={{ ui_lang }}">Sign up</a>
+    </div>
+
+    {% if error %}
+      <div class="alert">{{ error }}</div>
+    {% endif %}
+
+    {% if mode == 'signup' %}
+      <form method="post" action="/signup">
+        <input type="hidden" name="ui_lang" value="{{ ui_lang }}" />
+        <label for="full_name">Full name</label>
+        <input id="full_name" name="full_name" required />
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" minlength="6" required />
+
+        <button type="submit" class="submit-btn">Create account</button>
+      </form>
+    {% else %}
+      <form method="post" action="/login">
+        <input type="hidden" name="ui_lang" value="{{ ui_lang }}" />
+        <label for="login_email">Email</label>
+        <input id="login_email" name="email" type="email" required />
+
+        <label for="login_password">Password</label>
+        <input id="login_password" name="password" type="password" required />
+
+        <button type="submit" class="submit-btn">Login</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
