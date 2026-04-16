@@ -35,7 +35,14 @@
             <span>{{ entry.entry_date }} | {{ entry.mood_label }} | {{ entry.detected_language }}</span>
             <small>{{ entry.transcript[:180] }}{% if entry.transcript|length > 180 %}...{% endif %}</small>
           </a>
-          <a class="secondary-btn inline-btn" href="/entries/{{ entry.id }}/export">Download PDF</a>
+          <div class="card-actions">
+            <a class="secondary-btn inline-btn" href="/entries/{{ entry.id }}?ui_lang={{ ui_lang }}">View Insights</a>
+            <a class="secondary-btn inline-btn" href="/entries/{{ entry.id }}/export">Download PDF</a>
+            <form method="post" action="/entries/{{ entry.id }}/delete" onsubmit="return confirm('Delete this journal entry?');">
+              <input type="hidden" name="ui_lang" value="{{ ui_lang }}" />
+              <button type="submit" class="danger-btn inline-btn">Delete</button>
+            </form>
+          </div>
         </div>
       {% endfor %}
     </div>

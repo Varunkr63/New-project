@@ -75,4 +75,29 @@
     <p class="empty-state">Your exported entries will appear here after you record a journal.</p>
   {% endif %}
 </section>
+
+<section class="panel">
+  <h2>PDF sentiment analysis</h2>
+  <p>Upload an existing journal PDF and get a mood reading from its extracted text.</p>
+  <form method="post" action="/dashboard/pdf-analysis" enctype="multipart/form-data" class="pdf-analysis-form">
+    <input type="hidden" name="ui_lang" value="{{ ui_lang }}" />
+    <input type="file" name="pdf_file" accept=".pdf,application/pdf" required />
+    <button type="submit" class="submit-btn inline-btn">Analyze PDF</button>
+  </form>
+
+  {% if pdf_error %}
+    <div class="alert">{{ pdf_error }}</div>
+  {% endif %}
+
+  {% if pdf_result %}
+    <div class="entry-list">
+      <div class="entry-card">
+        <strong>{{ pdf_result.filename }}</strong>
+        <span>{{ pdf_result.mood_label }} | score {{ pdf_result.mood_score }} | text sentiment {{ pdf_result.text_sentiment }}</span>
+        <small>{{ pdf_result.insight_summary }}</small>
+      </div>
+      <div class="text-card">{{ pdf_result.pages_text_preview }}{% if pdf_result.pages_text_preview|length >= 500 %}...{% endif %}</div>
+    </div>
+  {% endif %}
+</section>
 {% endblock %}

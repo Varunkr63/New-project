@@ -180,6 +180,14 @@ button {
   color: var(--accent-dark);
 }
 
+.danger-btn {
+  width: auto;
+  padding: 14px 18px;
+  border: 1px solid rgba(141, 61, 35, 0.25);
+  background: rgba(195, 95, 60, 0.12);
+  color: var(--accent-dark);
+}
+
 .inline-btn {
   width: auto;
 }
@@ -231,6 +239,25 @@ button {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.card-actions form {
+  margin: 0;
+}
+
+.pdf-analysis-form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 18px 0;
 }
 
 .entry-card span,
