@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="detail-header">
+    <div>
+      <p class="eyebrow">{{ entry.entry_date }}</p>
+      <h1>{{ entry.title }}</h1>
+    </div>
+    <a class="secondary-btn" href="/entries/{{ entry.id }}/export">Export PDF</a>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-chip">
+      <span>Mood</span>
+      <strong>{{ entry.mood_label }}</strong>
+    </div>
+    <div class="stat-chip">
+      <span>Score</span>
+      <strong>{{ entry.mood_score }}</strong>
+    </div>
+    <div class="stat-chip">
+      <span>Language</span>
+      <strong>{{ entry.detected_language }}</strong>
+    </div>
+    <div class="stat-chip">
+      <span>Voice length</span>
+      <strong>{{ entry.voice_duration }}s</strong>
+    </div>
+  </div>
+
+  <h2>Insight</h2>
+  <p>{{ entry.insight_summary }}</p>
+
+  <h2>Transcript</h2>
+  <div class="text-card">{{ entry.transcript }}</div>
+
+  <h2>Notes</h2>
+  <div class="text-card">{{ entry.user_notes or "No extra notes added." }}</div>
+</section>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid dashboard-grid">
+  <div class="panel">
+    <p class="eyebrow">Daily insights</p>
+    <h1>Dashboard</h1>
+    <p>{{ insight }}</p>
+  </div>
+
+  <div class="panel stat-panel">
+    <span>Total entries</span>
+    <strong>{{ stats.total_entries or 0 }}</strong>
+  </div>
+
+  <div class="panel stat-panel">
+    <span>Average mood</span>
+    <strong>{{ stats.average_mood if stats.average_mood is not none else 0 }}</strong>
+  </div>
+
+  <div class="panel stat-panel">
+    <span>Average duration</span>
+    <strong>{{ stats.average_duration if stats.average_duration is not none else 0 }}s</strong>
+  </div>
+</section>
+
+<section class="grid two-up">
+  <div class="panel">
+    <h2>Last 7 days</h2>
+    {% if daily %}
+      <div class="metric-list">
+        {% for day in daily %}
+          <div class="metric-row">
+            <span>{{ day.entry_date }}</span>
+            <span>{{ day.count }} entries</span>
+            <strong>{{ day.avg_mood }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-state">No daily trend yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Mood distribution</h2>
+    {% if moods %}
+      <div class="metric-list">
+        {% for mood in moods %}
+          <div class="metric-row">
+            <span>{{ mood.mood_label }}</span>
+            <strong>{{ mood.count }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-state">Record a few entries to unlock this chart.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

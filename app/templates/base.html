@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Journal</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <aside class="sidebar">
+        <a class="brand" href="/?ui_lang={{ ui_lang|default('en') }}">Voice Journal</a>
+        <nav class="nav-links">
+          <a href="/?ui_lang={{ ui_lang|default('en') }}">New Entry</a>
+          <a href="/history?ui_lang={{ ui_lang|default('en') }}">History</a>
+          <a href="/dashboard?ui_lang={{ ui_lang|default('en') }}">Dashboard</a>
+        </nav>
+      </aside>
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

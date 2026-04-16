@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="detail-header">
+    <div>
+      <p class="eyebrow">Searchable archive</p>
+      <h1>Past Entries</h1>
+    </div>
+  </div>
+
+  <form class="filters" method="get" action="/history">
+    <input type="hidden" name="ui_lang" value="{{ ui_lang }}" />
+    <input type="search" name="q" value="{{ q }}" placeholder="Search transcript, title, or notes" />
+    <select name="mood">
+      <option value="">All moods</option>
+      <option value="Positive" {% if mood == 'Positive' %}selected{% endif %}>Positive</option>
+      <option value="Reflective" {% if mood == 'Reflective' %}selected{% endif %}>Reflective</option>
+      <option value="Low" {% if mood == 'Low' %}selected{% endif %}>Low</option>
+    </select>
+    <select name="language">
+      <option value="">All languages</option>
+      {% for code, label in language_options %}
+        <option value="{{ code }}" {% if language == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="secondary-btn">Search</button>
+  </form>
+
+  {% if entries %}
+    <div class="entry-list">
+      {% for entry in entries %}
+        <a class="entry-card" href="/entries/{{ entry.id }}?ui_lang={{ ui_lang }}">
+          <strong>{{ entry.title }}</strong>
+          <span>{{ entry.entry_date }} · {{ entry.mood_label }} · {{ entry.detected_language }}</span>
+          <small>{{ entry.transcript[:180] }}{% if entry.transcript|length > 180 %}...{% endif %}</small>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">No entries matched your search yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
