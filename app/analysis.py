@@ -18,6 +18,13 @@ POSITIVE_WORDS = {
     "relaxed",
     "productive",
     "smile",
+    "thankful",
+    "awesome",
+    "confident",
+    "energized",
+    "progress",
+    "win",
+    "better",
 }
 
 NEGATIVE_WORDS = {
@@ -36,6 +43,12 @@ NEGATIVE_WORDS = {
     "afraid",
     "overwhelmed",
     "cry",
+    "hurt",
+    "drained",
+    "panic",
+    "frustrated",
+    "confused",
+    "lost",
 }
 
 
@@ -53,12 +66,18 @@ def analyze_mood(transcript: str, voice_energy: float, duration_seconds: float) 
 
     text_sentiment = (positive_hits - negative_hits) / token_count
     duration_factor = min(duration_seconds / 180.0, 1.0)
-    voice_component = ((voice_energy - 0.2) * 0.6) + (duration_factor * 0.15)
-    combined_score = max(min((text_sentiment * 0.75) + voice_component, 1.0), -1.0)
+    voice_component = ((voice_energy - 0.15) * 0.8) + (duration_factor * 0.15)
 
-    if combined_score >= 0.35:
+    if not transcript.strip():
+        combined_score = max(min(voice_component, 1.0), -1.0)
+    else:
+        text_weight = 0.85 if token_count >= 6 else 0.6
+        voice_weight = 1 - text_weight
+        combined_score = max(min((text_sentiment * text_weight) + (voice_component * voice_weight), 1.0), -1.0)
+
+    if combined_score >= 0.2:
         label = "Positive"
-    elif combined_score <= -0.25:
+    elif combined_score <= -0.12:
         label = "Low"
     else:
         label = "Reflective"
@@ -80,6 +99,10 @@ def build_insight(
     duration_seconds: float,
 ) -> str:
     if not transcript.strip():
+        if mood_label == "Positive":
+            return "Your voice energy sounded lively even though the transcript was short. Add notes if you want a richer daily summary."
+        if mood_label == "Low":
+            return "The recording was brief and low-energy. Add a note about what happened today so the journal can capture more context."
         return "A short check-in was captured. Add a few notes to make the daily insight richer."
     if mood_label == "Positive":
         return (

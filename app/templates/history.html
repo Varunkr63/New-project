@@ -29,11 +29,14 @@
   {% if entries %}
     <div class="entry-list">
       {% for entry in entries %}
-        <a class="entry-card" href="/entries/{{ entry.id }}?ui_lang={{ ui_lang }}">
-          <strong>{{ entry.title }}</strong>
-          <span>{{ entry.entry_date }} · {{ entry.mood_label }} · {{ entry.detected_language }}</span>
-          <small>{{ entry.transcript[:180] }}{% if entry.transcript|length > 180 %}...{% endif %}</small>
-        </a>
+        <div class="entry-card">
+          <a href="/entries/{{ entry.id }}?ui_lang={{ ui_lang }}">
+            <strong>{{ entry.title }}</strong>
+            <span>{{ entry.entry_date }} | {{ entry.mood_label }} | {{ entry.detected_language }}</span>
+            <small>{{ entry.transcript[:180] }}{% if entry.transcript|length > 180 %}...{% endif %}</small>
+          </a>
+          <a class="secondary-btn inline-btn" href="/entries/{{ entry.id }}/export">Download PDF</a>
+        </div>
       {% endfor %}
     </div>
   {% else %}

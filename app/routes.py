@@ -47,6 +47,7 @@ def get_current_user(request: Request):
     user_id = request.session.get("user_id")
     if not user_id:
         return None
+    claim_legacy_entries(user_id)
     with get_connection() as conn:
         return conn.execute(
             "SELECT id, full_name, email, created_at FROM users WHERE id = ?",
@@ -69,6 +70,23 @@ def get_entry_for_user(entry_id: int, user_id: int):
             "SELECT * FROM journal_entries WHERE id = ? AND user_id = ?",
             (entry_id, user_id),
         ).fetchone()
+
+
+def claim_legacy_entries(user_id: int) -> None:
+    with get_connection() as conn:
+        has_owned_entries = conn.execute(
+            "SELECT 1 FROM journal_entries WHERE user_id = ? LIMIT 1",
+            (user_id,),
+        ).fetchone()
+        has_legacy_entries = conn.execute(
+            "SELECT 1 FROM journal_entries WHERE user_id IS NULL LIMIT 1"
+        ).fetchone()
+        if has_owned_entries is None and has_legacy_entries is not None:
+            conn.execute(
+                "UPDATE journal_entries SET user_id = ? WHERE user_id IS NULL",
+                (user_id,),
+            )
+            conn.commit()
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -118,7 +136,7 @@ def signup(
     email: str = Form(...),
     password: str = Form(...),
     ui_lang: str = Form("en"),
-) -> RedirectResponse | HTMLResponse:
+):
     normalized_email = email.strip().lower()
     if len(password) < 6:
         return templates.TemplateResponse(
@@ -164,6 +182,7 @@ def signup(
         conn.commit()
 
     request.session["user_id"] = user_id
+    claim_legacy_entries(user_id)
     return RedirectResponse(url=f"/?ui_lang={ui_lang}", status_code=303)
 
 
@@ -173,7 +192,7 @@ def login(
     email: str = Form(...),
     password: str = Form(...),
     ui_lang: str = Form("en"),
-) -> RedirectResponse | HTMLResponse:
+):
     normalized_email = email.strip().lower()
     with get_connection() as conn:
         user = conn.execute("SELECT * FROM users WHERE email = ?", (normalized_email,)).fetchone()
@@ -192,6 +211,7 @@ def login(
         )
 
     request.session["user_id"] = user["id"]
+    claim_legacy_entries(user["id"])
     return RedirectResponse(url=f"/?ui_lang={ui_lang}", status_code=303)
 
 
@@ -217,6 +237,11 @@ async def create_entry(
         return RedirectResponse(url=f"/auth?mode=login&ui_lang={ui_lang}", status_code=303)
 
     suffix = Path(audio.filename or "recording.webm").suffix or ".webm"
+    if suffix.lower() != ".wav":
+        raise HTTPException(
+            status_code=400,
+            detail="Please refresh the page and record again. The app now requires WAV recording on this machine.",
+        )
     filename = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid4().hex}{suffix}"
     audio_path = AUDIO_DIR / filename
     audio_bytes = await audio.read()
@@ -227,7 +252,7 @@ async def create_entry(
     except Exception as exc:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"Transcription failed: {exc}") from exc
 
-    transcript = transcription["text"]
+    transcript = transcription["text"].strip() or user_notes.strip() or title.strip()
     analysis = analyze_mood(transcript, voice_energy, voice_duration)
     entry_date = datetime.now().date().isoformat()
     created_at = datetime.now().isoformat(timespec="seconds")
@@ -268,7 +293,7 @@ async def create_entry(
 
 
 @router.get("/entries/{entry_id}", response_class=HTMLResponse)
-def view_entry(request: Request, entry_id: int, ui_lang: str = "en") -> HTMLResponse | RedirectResponse:
+def view_entry(request: Request, entry_id: int, ui_lang: str = "en"):
     user = get_current_user(request)
     if user is None:
         return RedirectResponse(url=f"/auth?mode=login&ui_lang={ui_lang}", status_code=303)
@@ -289,7 +314,7 @@ def history(
     mood: str = "",
     language: str = "",
     ui_lang: str = "en",
-) -> HTMLResponse | RedirectResponse:
+):
     user = get_current_user(request)
     if user is None:
         return RedirectResponse(url=f"/auth?mode=login&ui_lang={ui_lang}", status_code=303)
@@ -328,7 +353,7 @@ def history(
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, ui_lang: str = "en") -> HTMLResponse | RedirectResponse:
+def dashboard(request: Request, ui_lang: str = "en"):
     user = get_current_user(request)
     if user is None:
         return RedirectResponse(url=f"/auth?mode=login&ui_lang={ui_lang}", status_code=303)
@@ -366,6 +391,16 @@ def dashboard(request: Request, ui_lang: str = "en") -> HTMLResponse | RedirectR
             """,
             (user["id"],),
         ).fetchall()
+        recent_for_export = conn.execute(
+            """
+            SELECT id, title, entry_date
+            FROM journal_entries
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 5
+            """,
+            (user["id"],),
+        ).fetchall()
 
     top_mood = moods[0]["mood_label"] if moods else "No data yet"
     insight = (
@@ -384,6 +419,7 @@ def dashboard(request: Request, ui_lang: str = "en") -> HTMLResponse | RedirectR
             daily=daily,
             moods=moods,
             insight=insight,
+            recent_for_export=recent_for_export,
         ),
     )
 
