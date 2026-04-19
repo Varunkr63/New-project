@@ -4,13 +4,19 @@ import audioop
 import wave
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 import numpy as np
-import whisper
 
 
 @lru_cache(maxsize=1)
-def get_model() -> whisper.Whisper:
+def get_model() -> Any:
+    try:
+        import whisper
+    except Exception as exc:
+        raise RuntimeError(
+            "Whisper is not available in this environment. The app can run, but voice transcription is disabled."
+        ) from exc
     return whisper.load_model("base")
 
 
