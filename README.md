@@ -38,6 +38,30 @@ uvicorn main:app --reload
 
 5. Create an account, log in, and start recording entries.
 
+## Render Environment Variables
+
+For Render, the app now supports these environment variables:
+
+- `SESSION_SECRET`
+- `DATABASE_PATH`
+- `AUDIO_DIR`
+- `DATA_DIR`
+
+Example values for a Render persistent disk mounted at `/var/data`:
+
+```text
+SESSION_SECRET=replace-this-with-a-long-random-secret
+DATABASE_PATH=/var/data/journal.db
+AUDIO_DIR=/var/data/audio
+DATA_DIR=/var/data
+```
+
+Recommended Render start command:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
 ## Notes
 
 - Whisper may download model files the first time it runs.
