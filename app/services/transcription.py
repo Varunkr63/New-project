@@ -1,12 +1,24 @@
 from __future__ import annotations
 
 import audioop
+import os
 import wave
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+
+def get_transcription_backend() -> str:
+    configured = os.getenv("TRANSCRIPTION_BACKEND")
+    if configured:
+        return configured.strip().lower()
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai"
+    if os.getenv("ENABLE_LOCAL_WHISPER") == "1":
+        return "local"
+    return "disabled"
 
 
 @lru_cache(maxsize=1)
@@ -41,7 +53,7 @@ def load_wav_audio(audio_path: Path) -> np.ndarray:
     return audio
 
 
-def transcribe_audio(audio_path: Path, language: str) -> dict[str, str]:
+def transcribe_with_local_whisper(audio_path: Path, language: str) -> dict[str, str]:
     model = get_model()
     options: dict[str, str | bool] = {"task": "transcribe"}
     if language != "auto":
@@ -63,3 +75,45 @@ def transcribe_audio(audio_path: Path, language: str) -> dict[str, str]:
         "text": result.get("text", "").strip(),
         "language": result.get("language", language if language != "auto" else "unknown"),
     }
+
+
+def transcribe_with_openai(audio_path: Path, language: str) -> dict[str, str]:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set.")
+
+    try:
+        from openai import OpenAI
+    except Exception as exc:
+        raise RuntimeError("The OpenAI SDK is not installed.") from exc
+
+    client = OpenAI(api_key=api_key)
+    request_args: dict[str, str] = {
+        "model": os.getenv("OPENAI_TRANSCRIPTION_MODEL", "gpt-4o-mini-transcribe"),
+    }
+    if language != "auto":
+        request_args["language"] = language
+
+    with audio_path.open("rb") as audio_file:
+        result = client.audio.transcriptions.create(file=audio_file, **request_args)
+
+    return {
+        "text": (getattr(result, "text", "") or "").strip(),
+        "language": getattr(result, "language", language if language != "auto" else "unknown"),
+    }
+
+
+def transcribe_audio(audio_path: Path, language: str) -> dict[str, str]:
+    backend = get_transcription_backend()
+    if backend == "disabled":
+        return {
+            "text": "",
+            "language": language if language != "auto" else "unknown",
+        }
+    if backend == "openai":
+        return transcribe_with_openai(audio_path, language)
+    if backend == "local":
+        return transcribe_with_local_whisper(audio_path, language)
+    raise RuntimeError(
+        "Unsupported transcription backend. Use TRANSCRIPTION_BACKEND=openai, local, or disabled."
+    )
