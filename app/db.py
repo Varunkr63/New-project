@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-AUDIO_DIR = DATA_DIR / "audio"
-DB_PATH = DATA_DIR / "journal.db"
+DEFAULT_DATA_DIR = BASE_DIR / "data"
+DATA_DIR = Path(os.getenv("DATA_DIR", str(DEFAULT_DATA_DIR)))
+DB_PATH = Path(os.getenv("DATABASE_PATH", str(DATA_DIR / "journal.db")))
+AUDIO_DIR = Path(os.getenv("AUDIO_DIR", str(DB_PATH.parent / "audio")))
 
 
 def init_db() -> None:
-    DATA_DIR.mkdir(exist_ok=True)
-    AUDIO_DIR.mkdir(exist_ok=True)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
