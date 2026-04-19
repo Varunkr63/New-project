@@ -1,12 +1,12 @@
 # Voice Journal
 
-A multilingual voice journal built with FastAPI, SQLite, and Whisper.
+A multilingual voice journal built with FastAPI, SQLite, and configurable transcription backends.
 
 ## Features
 
 - User signup and login with session-based access
 - Record your voice directly in the browser
-- Convert speech to text with Whisper
+- Convert speech to text with API-based transcription or optional local Whisper
 - Store a private daily journal with transcript, mood, and tags
 - Search past entries by text, language, mood, or date
 - Analyze mood from both transcript content and voice energy
@@ -46,6 +46,9 @@ For Render, the app now supports these environment variables:
 - `DATABASE_PATH`
 - `AUDIO_DIR`
 - `DATA_DIR`
+- `TRANSCRIPTION_BACKEND`
+- `OPENAI_API_KEY`
+- `OPENAI_TRANSCRIPTION_MODEL`
 
 Example values for a Render persistent disk mounted at `/var/data`:
 
@@ -54,6 +57,9 @@ SESSION_SECRET=replace-this-with-a-long-random-secret
 DATABASE_PATH=/var/data/journal.db
 AUDIO_DIR=/var/data/audio
 DATA_DIR=/var/data
+TRANSCRIPTION_BACKEND=openai
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 ```
 
 Recommended Render start command:
@@ -64,6 +70,7 @@ uvicorn main:app --host 0.0.0.0 --port $PORT
 
 ## Notes
 
-- Whisper may download model files the first time it runs.
+- For cloud deployment, `TRANSCRIPTION_BACKEND=openai` is the safest option.
+- Local Whisper is still supported, but only when you set `ENABLE_LOCAL_WHISPER=1` or `TRANSCRIPTION_BACKEND=local` and install the Whisper package yourself.
 - Browser recording uses `MediaRecorder`; Chrome and Edge work well.
-- If your machine does not support the Whisper dependency stack, replace the implementation in `app/services/transcription.py` with the OpenAI Audio API or `faster-whisper`.
+- If transcription is disabled or unavailable, journal entries can still be saved and mood analysis will fall back to notes/title text.
