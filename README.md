@@ -68,6 +68,8 @@ Recommended Render start command:
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
+This repo now also includes [render.yaml](C:/Users/hp/OneDrive/Documents/New%20project/render.yaml) with a Render-ready web service definition and `/healthz` health check.
+
 ## Notes
 
 - For cloud deployment, `TRANSCRIPTION_BACKEND=openai` is the safest option.

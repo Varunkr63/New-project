@@ -3,11 +3,11 @@ from __future__ import annotations
 from io import BytesIO
 from textwrap import wrap
 
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-
 
 def build_entry_pdf(entry: dict) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4

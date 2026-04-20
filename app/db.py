@@ -11,9 +11,25 @@ DB_PATH = Path(os.getenv("DATABASE_PATH", str(DATA_DIR / "journal.db")))
 AUDIO_DIR = Path(os.getenv("AUDIO_DIR", str(DB_PATH.parent / "audio")))
 
 
+def _fallback_storage_paths() -> tuple[Path, Path]:
+    fallback_db_path = DEFAULT_DATA_DIR / "journal.db"
+    fallback_audio_dir = DEFAULT_DATA_DIR / "audio"
+    return fallback_db_path, fallback_audio_dir
+
+
+def configure_storage_paths() -> None:
+    global DB_PATH, AUDIO_DIR
+    try:
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        DB_PATH, AUDIO_DIR = _fallback_storage_paths()
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+
+
 def init_db() -> None:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    configure_storage_paths()
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
@@ -85,3 +101,11 @@ def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def get_db_path() -> Path:
+    return DB_PATH
+
+
+def get_audio_dir() -> Path:
+    return AUDIO_DIR
