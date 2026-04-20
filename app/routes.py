@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.analysis import analyze_mood
 from app.auth import hash_password, verify_password
-from app.db import AUDIO_DIR, get_connection
+from app.db import get_audio_dir, get_connection
 from app.pdf_analysis import extract_text_from_pdf_bytes
 from app.pdf_export import build_entry_pdf
 from app.services.transcription import transcribe_audio
@@ -148,6 +148,11 @@ def claim_legacy_entries(user_id: int) -> None:
                 (user_id,),
             )
             conn.commit()
+
+
+@router.get("/healthz")
+def healthz() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -304,7 +309,7 @@ async def create_entry(
             detail="Please refresh the page and record again. The app now requires WAV recording on this machine.",
         )
     filename = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid4().hex}{suffix}"
-    audio_path = AUDIO_DIR / filename
+    audio_path = get_audio_dir() / filename
     audio_bytes = await audio.read()
     audio_path.write_bytes(audio_bytes)
 

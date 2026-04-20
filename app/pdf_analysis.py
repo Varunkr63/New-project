@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from io import BytesIO
 
-from pypdf import PdfReader
-
 
 def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
+    from pypdf import PdfReader
+
     reader = PdfReader(BytesIO(pdf_bytes))
     chunks: list[str] = []
     for page in reader.pages:
