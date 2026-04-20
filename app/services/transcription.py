@@ -11,11 +11,21 @@ from typing import Any
 import numpy as np
 
 
+def get_openai_api_key() -> str | None:
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+    placeholder_markers = ("your-openai-api-key", "your_api_key", "your-key", "sk-your")
+    if any(marker in api_key.lower() for marker in placeholder_markers):
+        return None
+    return api_key
+
+
 def get_transcription_backend() -> str:
     configured = os.getenv("TRANSCRIPTION_BACKEND")
     if configured:
         return configured.strip().lower()
-    if os.getenv("OPENAI_API_KEY"):
+    if get_openai_api_key():
         return "openai"
     if os.getenv("ENABLE_LOCAL_WHISPER") == "1" or importlib.util.find_spec("whisper") is not None:
         return "local"
@@ -79,9 +89,9 @@ def transcribe_with_local_whisper(audio_path: Path, language: str) -> dict[str, 
 
 
 def transcribe_with_openai(audio_path: Path, language: str) -> dict[str, str]:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = get_openai_api_key()
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set.")
+        raise RuntimeError("OPENAI_API_KEY is missing or still set to the example placeholder value.")
 
     try:
         from openai import OpenAI
