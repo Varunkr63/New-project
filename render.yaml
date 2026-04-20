@@ -17,5 +17,3 @@ services:
         value: /var/data/journal.db
       - key: AUDIO_DIR
         value: /var/data/audio
-      - key: TRANSCRIPTION_BACKEND
-        value: disabled

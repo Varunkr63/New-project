@@ -316,9 +316,23 @@ async def create_entry(
     try:
         transcription = transcribe_audio(audio_path, journal_language)
     except Exception as exc:  # pragma: no cover
+        try:
+            audio_path.unlink(missing_ok=True)
+        except OSError:
+            pass
         raise HTTPException(status_code=500, detail=f"Transcription failed: {exc}") from exc
 
     transcript = transcription["text"].strip()
+    if not transcript:
+        try:
+            audio_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise HTTPException(
+            status_code=500,
+            detail="Transcription returned empty text. Please speak more clearly or check the transcription backend configuration.",
+        )
+
     analysis_input = transcript or user_notes.strip() or title.strip()
     saved_detected_language = transcription["language"]
     if journal_language == "hi" and transcript:

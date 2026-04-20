@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import audioop
+import importlib.util
 import os
 import wave
 from functools import lru_cache
@@ -16,7 +17,7 @@ def get_transcription_backend() -> str:
         return configured.strip().lower()
     if os.getenv("OPENAI_API_KEY"):
         return "openai"
-    if os.getenv("ENABLE_LOCAL_WHISPER") == "1":
+    if os.getenv("ENABLE_LOCAL_WHISPER") == "1" or importlib.util.find_spec("whisper") is not None:
         return "local"
     return "disabled"
 
@@ -106,10 +107,9 @@ def transcribe_with_openai(audio_path: Path, language: str) -> dict[str, str]:
 def transcribe_audio(audio_path: Path, language: str) -> dict[str, str]:
     backend = get_transcription_backend()
     if backend == "disabled":
-        return {
-            "text": "",
-            "language": language if language != "auto" else "unknown",
-        }
+        raise RuntimeError(
+            "Transcription is not configured. Set OPENAI_API_KEY for cloud transcription or install local Whisper."
+        )
     if backend == "openai":
         return transcribe_with_openai(audio_path, language)
     if backend == "local":

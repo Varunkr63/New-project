@@ -57,7 +57,6 @@ SESSION_SECRET=replace-this-with-a-long-random-secret
 DATABASE_PATH=/var/data/journal.db
 AUDIO_DIR=/var/data/audio
 DATA_DIR=/var/data
-TRANSCRIPTION_BACKEND=openai
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 ```
@@ -72,7 +71,7 @@ This repo now also includes [render.yaml](C:/Users/hp/OneDrive/Documents/New%20p
 
 ## Notes
 
-- For cloud deployment, `TRANSCRIPTION_BACKEND=openai` is the safest option.
+- For cloud deployment, setting `OPENAI_API_KEY` is the safest option. The app will automatically use OpenAI transcription when that key is present.
 - Local Whisper is still supported, but only when you set `ENABLE_LOCAL_WHISPER=1` or `TRANSCRIPTION_BACKEND=local` and install the Whisper package yourself.
 - Browser recording uses `MediaRecorder`; Chrome and Edge work well.
-- If transcription is disabled or unavailable, journal entries can still be saved and mood analysis will fall back to notes/title text.
+- If transcription is unavailable, the app now returns a clear error instead of silently saving an empty transcript.
