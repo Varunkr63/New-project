@@ -24,6 +24,6 @@ def home():
     return {"message": "Voice Journal API is running 🚀"}
 
 # ✅ Initialize DB (optional but recommended)
-@app.on_event("startup")
-def startup():
-    init_db()
+# @app.on_event("startup")
+# def startup():
+#     init_db()
